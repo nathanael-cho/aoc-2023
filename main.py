@@ -1,8 +1,74 @@
+import numpy as np
 import time
-from collections import deque
 
 import helpers
 
+
+def q24():
+    with open("2023-24.txt") as f:
+        lines = f.read().splitlines()
+
+    hailstones = []
+    for line in lines:
+        position_raw, velocity_raw = line.split(' @ ')
+        position = np.array([int(n) for n in position_raw.split(', ')])
+        velocity = np.array([int(n) for n in velocity_raw.split(', ')])
+        hailstones.append({
+            'p': position,
+            'v': velocity
+        })
+
+    # Part 1
+
+    boundary_min = 200000000000000
+    boundary_max = 400000000000000
+
+    def inverse(matrix):
+        try:
+            return np.linalg.inv(matrix)
+        # Handle on our own since we expect this to happen
+        except np.linalg.LinAlgError:
+            return None
+
+    total_crosses = 0
+    for i1 in range(len(hailstones)):
+        h1 = hailstones[i1]
+        p1 = h1['p']
+        v1 = h1['v']
+        for i2 in range(i1 + 1, len(hailstones)):
+            h2 = hailstones[i2]
+            p2 = h2['p']
+            v2 = h2['v']
+            matrix = np.array([[v1[0], -v2[0]], [v1[1], -v2[1]]])
+            inverse_of_matrix = inverse(matrix)
+
+            # Both lines have the same slope and thus will never cross
+            if inverse_of_matrix is None:
+                continue
+
+            equals = np.array([p2[0] - p1[0], p2[1] - p1[1]])
+            times = np.matmul(inverse_of_matrix, equals)
+
+            if (times <= 0).any():
+                # The crossing happened in the past for at least one line
+                continue
+
+            t1 = times[0]
+            x, y, _ = p1 + v1 * t1
+
+            should_continue = False
+            for variable in (x, y):
+                if variable < boundary_min or variable > boundary_max:
+                    # The crossing happened outside the boundary
+                    should_continue = True
+            if should_continue:
+                continue
+
+            total_crosses += 1
+
+    # Part 2
+
+    return total_crosses, None
 
 def q25():
     with open("2023-25.txt") as f:
@@ -22,6 +88,8 @@ def q25():
                 graph[neighbor].add(node)
             else:
                 graph[neighbor] = set([node])
+
+    # Part 1
 
     # Using breadth-first search (BFS), calculate minimal spanning trees (MSTs) starting from every node
     # BFS works for MST calculation because all edges have the same weight of 1
@@ -70,9 +138,11 @@ def q25():
     assert len(visited1.intersection(visited2)) == 0
     assert len(visited1) + len(visited2) == len(graph.keys())
 
-    return answer
+    # Part 2
+
+    return answer, None
 
 start = time.time()
-print(f"Answer: {q25()}")
+print(f"Answer: {q24()}")
 end = time.time()
 print(f"Time: {end - start:.2f}s")
