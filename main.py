@@ -67,6 +67,56 @@ def q24():
             total_crosses += 1
 
     # Part 2
+            
+    cps = []
+    for i in range(len(hailstones)):
+        h = hailstones[i]
+        p = h['p']
+        v = h['v']
+        cps.append(np.cross(v, p))
+
+    storage = []
+    n = 10
+
+    for i1 in range(n):
+        h1 = hailstones[i1]
+        p1 = h1['p']
+        v1 = h1['v']
+        cp1 = cps[i1]
+        for i2 in range(i1 + 1, n):
+            h2 = hailstones[i2]
+            p2 = h2['p']
+            v2 = h2['v']
+            cp2 = cps[i2]
+            storage.append((v2[0] * v1 - v1[0] * v2, v2[0] * cp1 - v1[0] * cp2))
+
+    storage2 = []
+
+    for i in range(len(storage) - 1):
+        x1 = storage[i][0]
+        y1 = storage[i][1]
+        x2 = storage[i + 1][0]
+        y2 = storage[i + 1][1]
+        storage2.append((x2[1] * x1 - x1[1] * x2, x2[1] * y1 - x1[1] * y2))
+
+    storage3 = []
+
+    for i in range(len(storage2) - 1):
+        x1 = storage2[i][0]
+        y1 = storage2[i][1]
+        x2 = storage2[i + 1][0]
+        y2 = storage2[i + 1][1]
+        storage3.append((x2[2] * x1 - x1[2] * x2, x2[2] * y1 - x1[2] * y2))
+
+    storage4 = []
+    for x, y in storage3:
+        assert (x == 0).all()
+        if not (y == 0).any():
+            storage4.append(y)
+
+    print(storage4)
+
+    print(np.cross(storage4[0], storage4[1]) // np.gcd.reduce(np.cross(storage4[0], storage4[1])))
 
     return total_crosses, None
 
