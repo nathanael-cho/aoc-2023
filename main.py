@@ -68,6 +68,8 @@ def q24():
             total_crosses += 1
 
     # Part 2
+            
+    # TODO: Cleanup?
 
     # No Numpy! Numpy cuts off numbers...
 
