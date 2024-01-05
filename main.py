@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import time
 
@@ -67,8 +68,141 @@ def q24():
             total_crosses += 1
 
     # Part 2
+            
+    # TODO: Cleanup?
 
-    return total_crosses, None
+    # No Numpy! Numpy cuts off numbers...
+
+    def cross_product(v1, v2):
+        assert len(v1) == 3
+        assert len(v2) == 3
+        v_i = v1[1] * v2[2] - v1[2] * v2[1]
+        v_j = v1[2] * v2[0] - v1[0] * v2[2]
+        v_k = v1[0] * v2[1] - v1[1] * v2[0]
+        return [v_i, v_j, v_k]
+    
+    def scalar_multiply(s, v):
+        assert len(v) == 3
+        return [s * v_i for v_i in v]
+    
+    def vector_subtract(v1, v2):
+        assert len(v1) == 3
+        assert len(v2) == 3
+        return [
+            v1[0] - v2[0],
+            v1[1] - v2[1],
+            v1[2] - v2[2]
+        ]
+    
+    def simplify_vector(v):
+        assert len(v) == 3
+        gcd = math.gcd(math.gcd(v[0], v[1]), v[2])
+        if not gcd:
+            return v
+        simplified = [vi // gcd for vi in v]
+        if simplified[0] < 0:
+            return scalar_multiply(-1, simplified)
+        else:
+            return simplified
+    
+    hailstones = []
+    for line in lines:
+        position_raw, velocity_raw = line.split(' @ ')
+        position = [int(n) for n in position_raw.split(', ')]
+        velocity = [int(n) for n in velocity_raw.split(', ')]
+        hailstones.append({
+            'p': position,
+            'v': velocity,
+            'p x v': cross_product(position, velocity)
+        })
+
+    # We don't actually have to go through all the points to calculate the starting position vector
+    n = 16
+
+    storage = []
+    for i1 in range(n):
+        h1 = hailstones[i1]
+        p1 = h1['p']
+        cp1 = h1['p x v']
+        for i2 in range(i1 + 1, n):
+            h2 = hailstones[i2]
+            p2 = h2['p']
+            cp2 = h2['p x v']
+            first = vector_subtract(
+                scalar_multiply(p2[0], p1),
+                scalar_multiply(p1[0], p2)
+            )
+            second = vector_subtract(
+                scalar_multiply(p2[0], cp1),
+                scalar_multiply(p1[0], cp2)
+            )
+            storage.append((first, second))
+
+    for i in range(1, 3):
+        intermediate = []
+        for i1 in range(n):
+            x1 = storage[i1][0]
+            y1 = storage[i1][1]
+            for i2 in range(i1 + 1, n):
+                x2 = storage[i2][0]
+                y2 = storage[i2][1]
+                first = vector_subtract(
+                    scalar_multiply(x2[i], x1),
+                    scalar_multiply(x1[i], x2)
+                )
+                second = vector_subtract(
+                    scalar_multiply(x2[i], y1),
+                    scalar_multiply(x1[i], y2)
+                )
+                intermediate.append((first, second))
+        storage = intermediate
+
+    final = []
+    for x, y in storage:
+        assert x == [0, 0, 0]
+        if y != [0, 0, 0]:
+            gcd = math.gcd(math.gcd(y[0], y[1]), y[2])
+            final.append([
+                y_i // gcd for y_i in y
+            ])
+    final = [(scalar_multiply(-1, v) if v[0] < 0 else v) for v in final]
+    final = sorted(final)
+    intermediate = [final[0]]
+    for i in range(1, len(final)):
+        if final[i] != final[i - 1]:
+            intermediate.append(final[i])
+    final = intermediate
+
+    choices = []
+    for i in range(len(final)):
+        for j in range(i + 1, len(final)):
+            choices.append(simplify_vector(cross_product(final[i], final[j])))
+    choices = sorted(choices)
+    intermediate = [choices[0]]
+    for i in range(1, len(choices)):
+        if choices[i] != choices[i - 1]:
+            intermediate.append(choices[i])
+    choices = intermediate
+    assert len(choices) == 1
+
+    # We calculate the position vector as: [239756157786030, 463222539161932, 273997500449219]
+    # With similar code we calculate the slope vector as: [47, -360, 18]
+    # The code below verifies that these vectors are indeed a solution
+    p_alpha = [239756157786030, 463222539161932, 273997500449219]
+    v_alpha = [47, -360, 18]
+    for h in hailstones:
+        p_difference = vector_subtract(
+            p_alpha,
+            h['p']
+        )
+        v_difference = vector_subtract(
+            h['v'],
+            v_alpha
+        )
+        t = p_difference[0] // v_difference[0]
+        assert t > 0 and (scalar_multiply(t, v_difference) == p_difference)
+
+    return total_crosses, sum(choices[0])
 
 def q25():
     with open("2023-25.txt") as f:
