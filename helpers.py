@@ -1,4 +1,15 @@
 from collections import deque
+from time import perf_counter
+
+
+class Timer:
+    def __enter__(self):
+        self.start = perf_counter()
+        return self
+    
+    def __exit__(self, *_):
+        self.time = perf_counter() - self.start
+        print(f'Time taken: {self.time:.3f}s')
 
 
 def bfs(node, graph):
