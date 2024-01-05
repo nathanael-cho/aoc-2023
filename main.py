@@ -115,7 +115,7 @@ def q24():
         })
 
     # We don't actually have to go through all the points to calculate the starting position vector
-    n = 5
+    n = 16
 
     storage = []
     for i1 in range(n):
@@ -183,7 +183,22 @@ def q24():
     choices = intermediate
     assert len(choices) == 1
 
-    # Probably can solve for x as well then verify that this choice is actually the correct one...
+    # We calculate the position vector as: [239756157786030, 463222539161932, 273997500449219]
+    # With similar code we calculate the slope vector as: [47, -360, 18]
+    # The code below verifies that these vectors are indeed a solution
+    p_alpha = [239756157786030, 463222539161932, 273997500449219]
+    v_alpha = [47, -360, 18]
+    for h in hailstones:
+        p_difference = vector_subtract(
+            p_alpha,
+            h['p']
+        )
+        v_difference = vector_subtract(
+            h['v'],
+            v_alpha
+        )
+        t = p_difference[0] // v_difference[0]
+        assert t > 0 and (scalar_multiply(t, v_difference) == p_difference)
 
     return total_crosses, sum(choices[0])
 
