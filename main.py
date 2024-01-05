@@ -1,3 +1,4 @@
+import math
 import numpy as np
 import time
 
@@ -67,58 +68,124 @@ def q24():
             total_crosses += 1
 
     # Part 2
-            
-    cps = []
-    for i in range(len(hailstones)):
-        h = hailstones[i]
-        p = h['p']
-        v = h['v']
-        cps.append(np.cross(v, p))
+
+    # No Numpy! Numpy cuts off numbers...
+
+    def cross_product(v1, v2):
+        assert len(v1) == 3
+        assert len(v2) == 3
+        v_i = v1[1] * v2[2] - v1[2] * v2[1]
+        v_j = v1[2] * v2[0] - v1[0] * v2[2]
+        v_k = v1[0] * v2[1] - v1[1] * v2[0]
+        return [v_i, v_j, v_k]
+    
+    def scalar_multiply(s, v):
+        assert len(v) == 3
+        return [s * v_i for v_i in v]
+    
+    def vector_subtract(v1, v2):
+        assert len(v1) == 3
+        assert len(v2) == 3
+        return [
+            v1[0] - v2[0],
+            v1[1] - v2[1],
+            v1[2] - v2[2]
+        ]
+    
+    def simplify_vector(v):
+        assert len(v) == 3
+        gcd = math.gcd(math.gcd(v[0], v[1]), v[2])
+        if not gcd:
+            return v
+        simplified = [vi // gcd for vi in v]
+        if simplified[0] < 0:
+            return scalar_multiply(-1, simplified)
+        else:
+            return simplified
+    
+    hailstones = []
+    for line in lines:
+        position_raw, velocity_raw = line.split(' @ ')
+        position = [int(n) for n in position_raw.split(', ')]
+        velocity = [int(n) for n in velocity_raw.split(', ')]
+        hailstones.append({
+            'p': position,
+            'v': velocity,
+            'p x v': cross_product(position, velocity)
+        })
+
+    # We don't actually have to go through all the points to calculate the starting position vector
+    n = 5
 
     storage = []
-    n = 10
-
     for i1 in range(n):
         h1 = hailstones[i1]
         p1 = h1['p']
-        v1 = h1['v']
-        cp1 = cps[i1]
+        cp1 = h1['p x v']
         for i2 in range(i1 + 1, n):
             h2 = hailstones[i2]
             p2 = h2['p']
-            v2 = h2['v']
-            cp2 = cps[i2]
-            storage.append((v2[0] * v1 - v1[0] * v2, v2[0] * cp1 - v1[0] * cp2))
+            cp2 = h2['p x v']
+            first = vector_subtract(
+                scalar_multiply(p2[0], p1),
+                scalar_multiply(p1[0], p2)
+            )
+            second = vector_subtract(
+                scalar_multiply(p2[0], cp1),
+                scalar_multiply(p1[0], cp2)
+            )
+            storage.append((first, second))
 
-    storage2 = []
+    for i in range(1, 3):
+        intermediate = []
+        for i1 in range(n):
+            x1 = storage[i1][0]
+            y1 = storage[i1][1]
+            for i2 in range(i1 + 1, n):
+                x2 = storage[i2][0]
+                y2 = storage[i2][1]
+                first = vector_subtract(
+                    scalar_multiply(x2[i], x1),
+                    scalar_multiply(x1[i], x2)
+                )
+                second = vector_subtract(
+                    scalar_multiply(x2[i], y1),
+                    scalar_multiply(x1[i], y2)
+                )
+                intermediate.append((first, second))
+        storage = intermediate
 
-    for i in range(len(storage) - 1):
-        x1 = storage[i][0]
-        y1 = storage[i][1]
-        x2 = storage[i + 1][0]
-        y2 = storage[i + 1][1]
-        storage2.append((x2[1] * x1 - x1[1] * x2, x2[1] * y1 - x1[1] * y2))
+    final = []
+    for x, y in storage:
+        assert x == [0, 0, 0]
+        if y != [0, 0, 0]:
+            gcd = math.gcd(math.gcd(y[0], y[1]), y[2])
+            final.append([
+                y_i // gcd for y_i in y
+            ])
+    final = [(scalar_multiply(-1, v) if v[0] < 0 else v) for v in final]
+    final = sorted(final)
+    intermediate = [final[0]]
+    for i in range(1, len(final)):
+        if final[i] != final[i - 1]:
+            intermediate.append(final[i])
+    final = intermediate
 
-    storage3 = []
+    choices = []
+    for i in range(len(final)):
+        for j in range(i + 1, len(final)):
+            choices.append(simplify_vector(cross_product(final[i], final[j])))
+    choices = sorted(choices)
+    intermediate = [choices[0]]
+    for i in range(1, len(choices)):
+        if choices[i] != choices[i - 1]:
+            intermediate.append(choices[i])
+    choices = intermediate
+    assert len(choices) == 1
 
-    for i in range(len(storage2) - 1):
-        x1 = storage2[i][0]
-        y1 = storage2[i][1]
-        x2 = storage2[i + 1][0]
-        y2 = storage2[i + 1][1]
-        storage3.append((x2[2] * x1 - x1[2] * x2, x2[2] * y1 - x1[2] * y2))
+    # Probably can solve for x as well then verify that this choice is actually the correct one...
 
-    storage4 = []
-    for x, y in storage3:
-        assert (x == 0).all()
-        if not (y == 0).any():
-            storage4.append(y)
-
-    print(storage4)
-
-    print(np.cross(storage4[0], storage4[1]) // np.gcd.reduce(np.cross(storage4[0], storage4[1])))
-
-    return total_crosses, None
+    return total_crosses, sum(choices[0])
 
 def q25():
     with open("2023-25.txt") as f:
